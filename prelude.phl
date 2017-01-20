@@ -1,0 +1,16 @@
+add +x1 +x2 -x3 = builtin "add++-" x1 x2 x3
+sub +x1 +x2 -x3 = builtin "sub++-" x1 x2 x3
+mul +x1 +x2 -x3 = builtin "mul++-" x1 x2 x3
+less +x1 +x2 = builtin "less++" x1 x2
+
+人間 "ソクラテス"
+人間 "プラトン"
+死ぬ ?x = 人間 x
+
+魔法 "白" "白"
+魔法 "黒" "黒"
+魔法 "赤" "白"
+魔法 "赤" "黒"
+
+fact 0 1
+fact +n ?r = less 0 n, sub n 1 @n1, fact n1 @r1, mul n r1 r
