@@ -1,6 +1,7 @@
 # coding: utf-8
 # frozen_string_literal: true
 
+require 'pp'
 require 'readline'
 require 'strscan'
 
@@ -77,40 +78,43 @@ class Prohell
 
   def repl
     while line = Readline.readline('?- ', true)
-      @s = StringScanner.new(line)
-      h = head
-      v = select_var(h)
-      u = unify(h).collect {|i|
-        if i[:var].kind_of?(Hash)
-          i[:var].select { |k| v.include?(k) }
-        else
-          nil
-        end
-      }.compact
-      p u
-      p !u.empty?
+      u = question(line)
+      pp u
+      puts !u.empty?
     end
+  end
+
+  def question(line)
+    @s = StringScanner.new(line)
+    h = head
+    v = select_var(h)
+    unify(h).collect {|i|
+      if i.kind_of?(Hash)
+        i.select { |k| v.include?(k) }
+      else
+        nil
+      end
+    }.compact
   end
 
   def unify(goal)
     match(goal).collect { |m|
       v = m[:var]
-      b = m[:body]
-      while b && !b.empty?
-        b = b.collect { |i| set(i, v) }
-        g = b.shift
+      m[:body]&.each { |g|
+        g = set(g, v)
         r = unify(g).first
         free = select_var(g)
-        if r[:var] == false
+        if r&.kind_of?(Hash)
+          v.merge!(r.select { |i| free.include?(i) })
+        elsif r == true
+          v = {}
+          break
+        else
           v = false
-          b = nil
           break
         end
-        if r&.fetch(:var)&.kind_of?(Hash)
-          v.merge!(r[:var].select { |i| free.include?(i) })
-        end
-      end
-      {var: v, body: b}
+      }
+      v
     }
   end
 
@@ -196,7 +200,8 @@ class Prohell
   end
 end
 
-unless defined?(Pry)
-  prohell = Prohell.new
-  prohell.repl
+def main
+  Prohell.new.repl
 end
+
+main
