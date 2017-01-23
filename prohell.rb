@@ -78,43 +78,38 @@ class Prohell
 
   def repl
     while line = Readline.readline('?- ', true)
-      u = question(line)
+      @s = StringScanner.new(line)
+      h = head
+      v = select_var(h)
+      u = unify(h).collect {|i|
+        if i.kind_of?(Hash)
+          i.select { |k| v.include?(k) }
+        else
+          nil
+        end
+      }.compact
       pp u
       puts !u.empty?
     end
   end
 
-  def question(line)
-    @s = StringScanner.new(line)
-    h = head
-    v = select_var(h)
-    unify(h).collect {|i|
-      if i.kind_of?(Hash)
-        i.select { |k| v.include?(k) }
-      else
-        nil
-      end
-    }.compact
-  end
-
   def unify(goal)
-    match(goal).collect { |m|
-      v = m[:var]
-      m[:body]&.each { |g|
-        g = set(g, v)
-        r = unify(g).first
-        free = select_var(g)
-        if r&.kind_of?(Hash)
-          v.merge!(r.select { |i| free.include?(i) })
-        elsif r == true
-          v = {}
-          break
-        else
-          v = false
-          break
-        end
-      }
-      v
+    match(goal).collect_concat { |m|
+      m[:body]&.inject([m[:var]]) { |vs, g|
+        vs.collect_concat { |v|
+          g = set(g, v)
+          free = select_var(g)
+          unify(g).collect { |r|
+            if r&.kind_of?(Hash)
+              r.select { |i| free.include?(i) }
+            elsif r == true
+              {}
+            else
+              nil
+            end
+          }.compact.collect { |r| v.merge(r) }
+        }
+      } || [m[:var]]
     }
   end
 
